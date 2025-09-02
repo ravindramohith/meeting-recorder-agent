@@ -36,15 +36,15 @@ dependencies:
   cupertino_icons: ^1.0.8
   
   # Audio recording
-  record: ^5.0.4
-  permission_handler: ^11.1.0
+  record: ^6.1.1
+  permission_handler: ^12.0.1
   
   # HTTP client for FastAPI communication
   http: ^1.1.2
   dio: ^5.4.0
   
-  # System tray/menu bar
-  system_tray: ^2.0.3
+  # Window management (system tray alternative)
+  window_manager: ^0.3.7
   
   # State management
   provider: ^6.1.1

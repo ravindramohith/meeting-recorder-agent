@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 class NetworkService {
-  static const String baseUrl = 'http://localhost:5000';
+  static const String baseUrl = 'http://localhost:8000';
   late final Dio _dio;
   
   NetworkService() {

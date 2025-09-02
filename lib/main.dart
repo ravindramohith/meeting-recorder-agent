@@ -1,8 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:window_manager/window_manager.dart';
 import 'providers/app_state.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Configure window for minimal toolbar-like appearance
+  await windowManager.ensureInitialized();
+  
+  WindowOptions windowOptions = const WindowOptions(
+    size: Size(320, 140),
+    center: false,
+    backgroundColor: Colors.transparent,
+    skipTaskbar: false,
+    titleBarStyle: TitleBarStyle.hidden,
+    windowButtonVisibility: false,
+    alwaysOnTop: true,
+  );
+  
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+    // Position window in top-right corner (similar to toolbar)
+    await windowManager.setPosition(const Offset(100, 100));
+  });
+  
   runApp(const MeetingRecorderApp());
 }
 
@@ -135,7 +158,7 @@ class CompactRecorderWindow extends StatelessWidget {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'localhost:5000',
+                              'localhost:8000',
                               style: TextStyle(
                                 fontSize: 10,
                                 color: Colors.grey.shade600,

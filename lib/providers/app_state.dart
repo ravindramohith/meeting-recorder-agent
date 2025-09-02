@@ -1,12 +1,10 @@
 import 'package:flutter/foundation.dart';
 import '../services/audio_service.dart';
 import '../services/network_service.dart';
-import '../services/system_tray_service.dart';
 
 class AppState extends ChangeNotifier {
   final AudioService _audioService = AudioService();
   final NetworkService _networkService = NetworkService();
-  final SystemTrayService _systemTrayService = SystemTrayService();
   
   bool _isRecording = false;
   bool _isServerConnected = false;
@@ -17,7 +15,6 @@ class AppState extends ChangeNotifier {
   bool get isServerConnected => _isServerConnected;
   String get statusMessage => _statusMessage;
   AudioService get audioService => _audioService;
-  SystemTrayService get systemTrayService => _systemTrayService;
   
   AppState() {
     _initialize();
@@ -26,13 +23,6 @@ class AppState extends ChangeNotifier {
   Future<void> _initialize() async {
     // Check server connection
     await _checkServerConnection();
-    
-    // Initialize system tray
-    await _systemTrayService.initSystemTray(
-      onStart: startRecording,
-      onStop: stopRecording,
-      onShow: showMainWindow,
-    );
     
     // Listen to audio service changes
     _audioService.addListener(_onAudioServiceChanged);
@@ -43,7 +33,6 @@ class AppState extends ChangeNotifier {
     _isRecording = _audioService.isRecording;
     
     if (wasRecording != _isRecording) {
-      _systemTrayService.updateRecordingState(_isRecording);
       _updateStatusMessage();
       notifyListeners();
     }
@@ -125,7 +114,6 @@ class AppState extends ChangeNotifier {
   void dispose() {
     _audioService.removeListener(_onAudioServiceChanged);
     _audioService.dispose();
-    _systemTrayService.dispose();
     super.dispose();
   }
 }
