@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/app_state.dart';
+import 'widgets/recording_control.dart';
 
 void main() {
   runApp(const MeetingRecorderApp());
@@ -150,7 +151,7 @@ class CompactRecorderWindow extends StatelessWidget {
                   // Settings Button
                   GestureDetector(
                     onTap: () {
-                      appState.refreshServerConnection();
+                      // TODO: Open settings or hide window
                     },
                     child: Container(
                       padding: const EdgeInsets.all(8),
@@ -159,7 +160,7 @@ class CompactRecorderWindow extends StatelessWidget {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Icon(
-                        Icons.refresh,
+                        Icons.more_vert,
                         size: 16,
                         color: Colors.grey.shade600,
                       ),
