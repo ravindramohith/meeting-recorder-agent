@@ -21,11 +21,17 @@ class AppState extends ChangeNotifier {
   }
   
   Future<void> _initialize() async {
-    // Check server connection
-    await _checkServerConnection();
+    // Connect to WebSocket
+    await _connectWebSocket();
     
     // Listen to audio service changes
     _audioService.addListener(_onAudioServiceChanged);
+  }
+  
+  Future<void> _connectWebSocket() async {
+    _isServerConnected = await _audioService.webSocketService.connect();
+    _updateStatusMessage();
+    notifyListeners();
   }
   
   void _onAudioServiceChanged() {
@@ -56,9 +62,9 @@ class AppState extends ChangeNotifier {
   
   Future<void> startRecording() async {
     if (!_isServerConnected) {
-      await _checkServerConnection();
+      await _connectWebSocket();
       if (!_isServerConnected) {
-        _statusMessage = 'Cannot start: Server not available';
+        _statusMessage = 'Cannot start: WebSocket not connected';
         notifyListeners();
         return;
       }
@@ -67,23 +73,18 @@ class AppState extends ChangeNotifier {
     _statusMessage = 'Starting recording...';
     notifyListeners();
     
-    // Start session on server
-    final sessionStarted = await _networkService.startSession();
-    if (!sessionStarted) {
-      _statusMessage = 'Failed to start server session';
-      notifyListeners();
-      return;
-    }
+    // Start session via WebSocket
+    await _audioService.webSocketService.startSession();
     
     // Start audio recording
     final recordingStarted = await _audioService.startRecording();
     if (!recordingStarted) {
-      _statusMessage = 'Failed to start recording';
+      _statusMessage = 'Failed to start recording - Check permissions';
       notifyListeners();
       return;
     }
     
-    _statusMessage = 'Recording started';
+    _statusMessage = 'Recording started successfully';
     notifyListeners();
   }
   
@@ -94,8 +95,8 @@ class AppState extends ChangeNotifier {
     // Stop audio recording
     await _audioService.stopRecording();
     
-    // End session on server
-    await _networkService.endSession();
+    // End session via WebSocket
+    await _audioService.webSocketService.endSession();
     
     _statusMessage = 'Recording stopped';
     notifyListeners();
@@ -107,7 +108,7 @@ class AppState extends ChangeNotifier {
   }
   
   Future<void> refreshServerConnection() async {
-    await _checkServerConnection();
+    await _connectWebSocket();
   }
   
   @override

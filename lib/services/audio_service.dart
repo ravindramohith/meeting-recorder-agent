@@ -2,48 +2,80 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:record/record.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:flutter/foundation.dart';
-import 'network_service.dart';
+import 'websocket_service.dart';
 
 class AudioService extends ChangeNotifier {
   final AudioRecorder _recorder = AudioRecorder();
-  final NetworkService _networkService = NetworkService();
+  final WebSocketService _webSocketService = WebSocketService();
   bool _isRecording = false;
   Timer? _chunkTimer;
   String? _currentRecordingPath;
   
   bool get isRecording => _isRecording;
+  WebSocketService get webSocketService => _webSocketService;
   
   Future<bool> requestPermissions() async {
-    final status = await Permission.microphone.request();
-    return status == PermissionStatus.granted;
+    try {
+      // Use the record plugin's built-in permission system for macOS
+      final hasPermission = await _recorder.hasPermission();
+      print('Microphone permission check: $hasPermission');
+      
+      if (hasPermission) {
+        print('✅ Microphone permission already granted');
+        return true;
+      } else {
+        print('❌ Microphone permission not granted - user needs to grant in System Preferences');
+        return false;
+      }
+    } catch (e) {
+      print('Error checking permissions: $e');
+      return false;
+    }
   }
   
   Future<bool> startRecording() async {
     try {
+      print('Starting recording process...');
+      
       // Check permissions first
       if (!await requestPermissions()) {
-        print('Microphone permission denied');
+        print('❌ Microphone permission denied');
         return false;
       }
+      print('✅ Microphone permission granted');
+      
+      // Check if recorder is available
+      final isAvailable = await _recorder.hasPermission();
+      print('Recorder permission check: $isAvailable');
       
       // Get temporary directory for recording
       final tempDir = await getTemporaryDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       _currentRecordingPath = path.join(tempDir.path, 'meeting_$timestamp.m4a');
+      print('Recording path: $_currentRecordingPath');
       
-      // Start recording
+      // Start recording with simplified config for better compatibility
+      print('Starting recorder...');
       await _recorder.start(
         const RecordConfig(
           encoder: AudioEncoder.aacLc,
-          bitRate: 128000,
           sampleRate: 44100,
+          numChannels: 1, // Mono recording
         ),
         path: _currentRecordingPath!,
       );
+      
+      // Verify recording actually started
+      final isRecording = await _recorder.isRecording();
+      print('Recording verification: $isRecording');
+      
+      if (!isRecording) {
+        print('❌ Recording failed to start');
+        return false;
+      }
       
       _isRecording = true;
       notifyListeners();
@@ -51,11 +83,12 @@ class AudioService extends ChangeNotifier {
       // Start sending chunks every 10 seconds
       _startChunkTimer();
       
-      print('Recording started: $_currentRecordingPath');
+      print('✅ Recording started successfully: $_currentRecordingPath');
       return true;
       
     } catch (e) {
-      print('Failed to start recording: $e');
+      print('❌ Failed to start recording: $e');
+      print('Error type: ${e.runtimeType}');
       return false;
     }
   }
@@ -124,11 +157,10 @@ class AudioService extends ChangeNotifier {
   Future<void> _sendToServer(Uint8List audioData, {required bool isChunk}) async {
     try {
       if (isChunk) {
-        await _networkService.sendAudioChunk(audioData);
+        await _webSocketService.sendAudioChunk(audioData);
       } else {
-        // Send final file for transcription
-        final filename = 'meeting_${DateTime.now().millisecondsSinceEpoch}.m4a';
-        await _networkService.sendForTranscription(audioData, filename);
+        // Send final file via WebSocket
+        await _webSocketService.sendAudioChunk(audioData);
       }
     } catch (e) {
       print('Failed to send audio to server: $e');
